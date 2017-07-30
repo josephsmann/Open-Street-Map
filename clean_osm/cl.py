@@ -135,66 +135,66 @@ def pf(fn = "map.osm", force_refresh = False):
     return b.map(ET.XML).map(element2dict)
 
 
-def partition_file(fn =  "map.osm"):
-    """
-    obsolete: replaced it with pf - might want to test if
-    pf and partition_file /
-
-    parameters
-    ----------
-        fn: file name of the osm file to be partitioned into the number
-        of processor cores available
-
-    effects
-    -------
-        partition_file will create the same number of partition files as processor
-        cores on the host machine  while retaining
-        XML element integrity for the purposes of parallel execution.
-
-        each 'node','way' and 'ref' element is on one line
-    """
-
-
-    mod_time_map = os.path.getmtime(fn)
-    mod_time_p1 = os.path.getmtime('sample_0.osm') if os.path.exists('sample_0.osm') else 0
-    if mod_time_map < mod_time_p1:
-        print("sample files still fresh")
-        return
-    else:
-        print("making fresh sample files")
-    # iteration count
-    it = 0
-    # character count
-    cc = 0
-    num_cores = multiprocessing.cpu_count()
-    file_size = os.path.getsize(fn)
-    partition_size = file_size // num_cores
-    SAMPLE_FILE = "sample_{}.osm"
-
-    # count_d will count the number of each kind of tag
-    count_d = defaultdict(int)
-    output = open(SAMPLE_FILE.format(it), 'wb')
-
-    for i, element in enumerate(get_element(fn)):
-        # if our file is too big we start a new one
-        if cc > partition_size:
-            output.close()
-            print(SAMPLE_FILE.format(it))
-            it += 1 # increment our sample file count
-            output = open(SAMPLE_FILE.format(it), 'wb')
-            cc = 0  # reset character  count to zero
-
-        # count the number of each kind of tag in this partition
-        count_d[element.tag] += 1
-        bs = ET.tostring(element, encoding='utf-8')
-        s = bs.decode()
-        s = ' '.join(s.rsplit())+'\n' #.replace('\n','')
-        cc += len(s)
-        output.write(s.encode())
-
-    output.close()
-    print(SAMPLE_FILE.format(it))
-    print(count_d)
+# def partition_file(fn =  "map.osm"):
+#     """
+#     obsolete: replaced it with pf - might want to test if
+#     pf and partition_file /
+#
+#     parameters
+#     ----------
+#         fn: file name of the osm file to be partitioned into the number
+#         of processor cores available
+#
+#     effects
+#     -------
+#         partition_file will create the same number of partition files as processor
+#         cores on the host machine  while retaining
+#         XML element integrity for the purposes of parallel execution.
+#
+#         each 'node','way' and 'ref' element is on one line
+#     """
+#
+#
+#     mod_time_map = os.path.getmtime(fn)
+#     mod_time_p1 = os.path.getmtime('sample_0.osm') if os.path.exists('sample_0.osm') else 0
+#     if mod_time_map < mod_time_p1:
+#         print("sample files still fresh")
+#         return
+#     else:
+#         print("making fresh sample files")
+#     # iteration count
+#     it = 0
+#     # character count
+#     cc = 0
+#     num_cores = multiprocessing.cpu_count()
+#     file_size = os.path.getsize(fn)
+#     partition_size = file_size // num_cores
+#     SAMPLE_FILE = "sample_{}.osm"
+#
+#     # count_d will count the number of each kind of tag
+#     count_d = defaultdict(int)
+#     output = open(SAMPLE_FILE.format(it), 'wb')
+#
+#     for i, element in enumerate(get_element(fn)):
+#         # if our file is too big we start a new one
+#         if cc > partition_size:
+#             output.close()
+#             print(SAMPLE_FILE.format(it))
+#             it += 1 # increment our sample file count
+#             output = open(SAMPLE_FILE.format(it), 'wb')
+#             cc = 0  # reset character  count to zero
+#
+#         # count the number of each kind of tag in this partition
+#         count_d[element.tag] += 1
+#         bs = ET.tostring(element, encoding='utf-8')
+#         s = bs.decode()
+#         s = ' '.join(s.rsplit())+'\n' #.replace('\n','')
+#         cc += len(s)
+#         output.write(s.encode())
+#
+#     output.close()
+#     print(SAMPLE_FILE.format(it))
+#     print(count_d)
 
 def element2dict(e):
     """
