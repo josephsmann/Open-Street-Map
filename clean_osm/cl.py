@@ -12,7 +12,7 @@ You should create new scripts to account for additional problems that you find i
 
 5) Adapt the preparation code for converting the data from XML to CSV or JSON, depending on chosen database. Make sure you import your update functions to clean the data as part of this step.
 6) Run the conversion code on the full dataset and import the converted data into SQL or MongoDB as appropriate.
-7) Explore the data using queries.
+7) Explore the data using queries. (vim mode?)
 """
 
 import os
