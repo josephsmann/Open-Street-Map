@@ -84,7 +84,7 @@ def get_element(osm_fn, tags=('node', 'way', 'relation')):
 
 
 def pf(fn = "map.osm", force_refresh = False):
-    """
+    """  
     parameters
     ----------
     fn: (str) is the name of file that should exist
