@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 To confirm, you should be auditing your dataset for problems and performing cleaning operations through Python, and then only insert the cleaned data into your dataset of choice. Your workflow might look like the following:
 1) Complete the Case Study for your chosen database type.
@@ -24,10 +26,11 @@ from collections import defaultdict
 from dask import bag as db
 import jmespath as jp
 import json
-
+import chardet
+import re
 
 ######### acquire map.osm
-def download_data(url, fn = 'map.osm', path='.'):
+def download_data(url, fn = 'map.osm', path='.', force_refresh=False):
     """
     download_data will acquire an osm format file from url and save it, if
     we have not done so previously and will create directories as needed.
@@ -37,6 +40,7 @@ def download_data(url, fn = 'map.osm', path='.'):
         url: a url that points to an overpass-api link
         fn: (optional) filename that the saved file will be called
         path: (optional) a directory path if we want a separate data directory
+        force_refresh: (optional) download a fresh osm file even if one already exists
 
     returns
     -------
@@ -46,15 +50,29 @@ def download_data(url, fn = 'map.osm', path='.'):
     ------------
         creates file with path given
     """
+    print("force_refresh", force_refresh)
     if not os.path.exists(path):
         os.mkdir(path)
 
     full_path = os.path.join(path, fn)
 
-    if not os.path.exists(full_path):
+    if not os.path.exists(full_path) or force_refresh:
+        print("fetching new map file")
         response = requests.get(url)
-        with open(full_path, 'wb') as f:
-            f.write(response.content)
+        print( response.headers)
+        print( response.encoding )
+        # writing a binary file here, maybe it should be text?
+
+
+        # seeing if this breaks stuff..
+        print(full_path)
+        print(chardet.detect(response.content))
+        print(response.text[:300])
+        with open(full_path, 'w', encoding='utf-8') as f:
+            f.write(response.content.decode('utf-8'))
+
+download_data('http://api.openstreetmap.org/api/0.6/map?bbox=11.54,48.14,11.543,48.145', force_refresh=True)
+!head map.osm
 
 def get_element(osm_fn, tags=('node', 'way', 'relation')):
     """
@@ -71,7 +89,8 @@ def get_element(osm_fn, tags=('node', 'way', 'relation')):
         Reference:
         http://effbot.org/zone/element-iterparse.htm
     """
-    with open(osm_fn) as osm_file:
+
+    with open(osm_fn, encoding='utf-8') as osm_file:
         context = iter(ET.iterparse(osm_file, events=('start', 'end')))
         _event, root = next(context)
         for event, elem in context:
@@ -84,7 +103,7 @@ def get_element(osm_fn, tags=('node', 'way', 'relation')):
 
 
 def pf(fn = "map.osm", force_refresh = False):
-    """  
+    """
     parameters
     ----------
     fn: (str) is the name of file that should exist
@@ -114,9 +133,12 @@ def pf(fn = "map.osm", force_refresh = False):
         out_fn = fn_prefix + '_slxml.osm'
 
         # create file with one element per line
-        with open(out_fn, 'w') as outputf:
+        # IMPORTANT: must write text with 'utf-8' otherwise it will choke
+        # trying to write ascii
+        with open(out_fn, 'w', encoding='utf-8') as outputf:
             for i,e in enumerate(get_element(fn)):
-                s = ET.tostring(e, encoding='unicode') # should not be binary
+                # from docs: if encoding is _not_ 'unicode' a byte string will be generated(!)
+                s = ET.tostring(e, encoding='unicode')
                 s1 = ' '.join( s.strip().split() )
                 outputf.write(s1+'\n')
         line_count = i
@@ -135,66 +157,6 @@ def pf(fn = "map.osm", force_refresh = False):
     return b.map(ET.XML).map(element2dict)
 
 
-# def partition_file(fn =  "map.osm"):
-#     """
-#     obsolete: replaced it with pf - might want to test if
-#     pf and partition_file /
-#
-#     parameters
-#     ----------
-#         fn: file name of the osm file to be partitioned into the number
-#         of processor cores available
-#
-#     effects
-#     -------
-#         partition_file will create the same number of partition files as processor
-#         cores on the host machine  while retaining
-#         XML element integrity for the purposes of parallel execution.
-#
-#         each 'node','way' and 'ref' element is on one line
-#     """
-#
-#
-#     mod_time_map = os.path.getmtime(fn)
-#     mod_time_p1 = os.path.getmtime('sample_0.osm') if os.path.exists('sample_0.osm') else 0
-#     if mod_time_map < mod_time_p1:
-#         print("sample files still fresh")
-#         return
-#     else:
-#         print("making fresh sample files")
-#     # iteration count
-#     it = 0
-#     # character count
-#     cc = 0
-#     num_cores = multiprocessing.cpu_count()
-#     file_size = os.path.getsize(fn)
-#     partition_size = file_size // num_cores
-#     SAMPLE_FILE = "sample_{}.osm"
-#
-#     # count_d will count the number of each kind of tag
-#     count_d = defaultdict(int)
-#     output = open(SAMPLE_FILE.format(it), 'wb')
-#
-#     for i, element in enumerate(get_element(fn)):
-#         # if our file is too big we start a new one
-#         if cc > partition_size:
-#             output.close()
-#             print(SAMPLE_FILE.format(it))
-#             it += 1 # increment our sample file count
-#             output = open(SAMPLE_FILE.format(it), 'wb')
-#             cc = 0  # reset character  count to zero
-#
-#         # count the number of each kind of tag in this partition
-#         count_d[element.tag] += 1
-#         bs = ET.tostring(element, encoding='utf-8')
-#         s = bs.decode()
-#         s = ' '.join(s.rsplit())+'\n' #.replace('\n','')
-#         cc += len(s)
-#         output.write(s.encode())
-#
-#     output.close()
-#     print(SAMPLE_FILE.format(it))
-#     print(count_d)
 
 def element2dict(e):
     """
@@ -317,10 +279,11 @@ def top_value_freqs(subtag, b1, n=5):
 
 
 if __name__ == '__main__':
-    min_lat, max_lat, min_lon, max_lon =  53.5164, 53.5718, -113.5742,-113.4485
+    min_lat, max_lat, min_lon, max_lon =  53.5164, 53.52, -113.5742,-113.57
+    # min_lat, max_lat, min_lon, max_lon =  53.5164, 53.5718, -113.5742,-113.4485
     map_url = 'http://overpass-api.de/api/map?bbox={0},{1},{2},{3}'.format(min_lon, min_lat, max_lon, max_lat)
-    download_data(map_url)
+    download_data(map_url, force_refresh=True)
     # partition_files()
-    b = pf()
+    b = pf(force_refresh=False)
     b.map(fix_city).map(fix_province).map(fix_postal_codes).map(json.dumps).to_textfiles('clean-*.json')
     # can we set up an iterator for this...
