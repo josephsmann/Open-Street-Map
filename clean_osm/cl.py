@@ -100,7 +100,7 @@ def get_element(osm_fn, tags=('node', 'way', 'relation')):
                 pass
 
 
-def pf(fn = "map.osm", force_refresh = False):
+def partition_files(fn = "map.osm", force_refresh = False):
     """
     parameters
     ----------
@@ -244,7 +244,7 @@ def create_point(doc):
     parameters:
     -----------
         doc (dict)
-        
+
     returns:
     --------
         a modified dictionary that contains a geoJSON point structure if the input document
@@ -295,11 +295,11 @@ def top_value_freqs(subtag, b1, n=5):
 
 
 if __name__ == '__main__':
-    min_lat, max_lat, min_lon, max_lon =  53.5164, 53.52, -113.5742,-113.57
-    # min_lat, max_lat, min_lon, max_lon =  53.5164, 53.5718, -113.5742,-113.4485
+    # min_lat, max_lat, min_lon, max_lon =  53.5164, 53.52, -113.5742,-113.57
+    min_lat, max_lat, min_lon, max_lon =  53.5164, 53.5718, -113.5742,-113.4485
     map_url = 'http://overpass-api.de/api/map?bbox={0},{1},{2},{3}'.format(min_lon, min_lat, max_lon, max_lat)
     download_data(map_url, force_refresh=True)
     # partition_files()
-    b = pf(force_refresh=False)
+    b = partition_files(force_refresh=False)
     b.map(fix_city).map(fix_province).map(fix_postal_codes).map(create_point).map(json.dumps).to_textfiles('clean-*.json')
     # can we set up an iterator for this...

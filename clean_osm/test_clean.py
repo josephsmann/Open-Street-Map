@@ -40,11 +40,11 @@ def test_element2dict():
         assert( d['type'] in ('node','way','relation'))
 
 
-def test_pf():
-    # we assume that we're using the default file for pf
+def test_partition_files():
+    # we assume that we're using the default file for partition_files
     assert(os.path.exists('map.osm'))
 
-    b1 = pf(force_refresh=True)
+    b1 = partition_files(force_refresh=True)
     assert( os.path.exists('partition_0.osm') )
     b0 = db.read_text('partition_*.osm').map(ET.XML).map(element2dict)
 
@@ -62,8 +62,8 @@ def test_pf():
         assert(b.npartitions == multiprocessing.cpu_count() )
 
     p = Path(".")
-    partition_files = list(p.glob('partition_?.osm'))
-    assert(len(partition_files) == multiprocessing.cpu_count())
+    partitioned_files = list(p.glob('partition_?.osm'))
+    assert(len(partitioned_files) == multiprocessing.cpu_count())
 
     # count the number of top level elements are the same in the bag
     #  as in the file
@@ -83,7 +83,7 @@ def test_create_point():
     assert( doc2['attr']['point']['coordinates'] == [24.44, 25.63])
 
 def test_top_value_freqs():
-    b = pf()
+    b = partition_files()
     freqs = top_value_freqs('type',b)
     assert(freqs.count().compute() == 3)
     for f in freqs:
