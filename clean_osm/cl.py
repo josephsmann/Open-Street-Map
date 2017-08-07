@@ -71,8 +71,6 @@ def download_data(url, fn = 'map.osm', path='.', force_refresh=False):
         with open(full_path, 'w', encoding='utf-8') as f:
             f.write(response.content.decode('utf-8'))
 
-download_data('http://api.openstreetmap.org/api/0.6/map?bbox=11.54,48.14,11.543,48.145', force_refresh=True)
-!head map.osm
 
 def get_element(osm_fn, tags=('node', 'way', 'relation')):
     """
@@ -241,6 +239,24 @@ def fix_postal_codes(doc):
 
     return doc
 
+def create_point(doc):
+    """
+    parameters:
+    -----------
+        doc (dict)
+        
+    returns:
+    --------
+        a modified dictionary that contains a geoJSON point structure if the input document
+        contain latitude and longitude coordinates
+    """
+    if 'attr' in doc:
+        if ('lon' in doc['attr']) and ('lat' in doc['attr']):
+            lon = float(doc['attr']['lon'] )
+            lat = float(doc['attr']['lat'] )
+            doc['attr']['point'] = {'type' : 'Point', 'coordinates' : [lon, lat]}
+    return doc
+
 def top_value_freqs(subtag, b1, n=5):
     """
     parameters:
@@ -285,5 +301,5 @@ if __name__ == '__main__':
     download_data(map_url, force_refresh=True)
     # partition_files()
     b = pf(force_refresh=False)
-    b.map(fix_city).map(fix_province).map(fix_postal_codes).map(json.dumps).to_textfiles('clean-*.json')
+    b.map(fix_city).map(fix_province).map(fix_postal_codes).map(create_point).map(json.dumps).to_textfiles('clean-*.json')
     # can we set up an iterator for this...

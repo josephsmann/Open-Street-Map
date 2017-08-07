@@ -18,7 +18,7 @@ def test_download_data():
     """
     min_lat, max_lat, min_lon, max_lon =  53.5164, 53.5718, -113.5742,-113.4485
     map_url = 'http://overpass-api.de/api/map?bbox={0},{1},{2},{3}'.format(min_lon, min_lat, max_lon, max_lat)
-    download_data(map_url)
+    download_data(map_url, force_refresh=True)
     size = os.path.getsize('map.osm')
     print("map.osm size in MB", size / (1024 ** 2))
     assert(size > (50 * 1024**2))
@@ -76,6 +76,11 @@ def test_pf():
     for k in dd:
         assert(dd[k] == tvf_d[k] )
 
+def test_create_point():
+    doc = {'attr' : {'lat': 25.63, 'lon' : 24.44 }}
+    doc2 = create_point(doc)
+    assert( doc2['attr']['point']['type'] == 'Point')
+    assert( doc2['attr']['point']['coordinates'] == [24.44, 25.63])
 
 def test_top_value_freqs():
     b = pf()
